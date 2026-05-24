@@ -1,6 +1,7 @@
 <script setup>
 import { useRouter } from 'vue-router'
 import { useAuth } from './composables/useAuth'
+import logo from './assets/logo.png'
 
 const router = useRouter()
 const { isMod, logout } = useAuth()
@@ -19,9 +20,9 @@ function handleLogout() {
           :ripple="false"
           @click="router.push('/')"
           class="home-btn"
+          variant="plain"
         >
-          <v-icon icon="mdi-gift" class="mr-2"></v-icon>
-          <span class="text-subtitle-1 font-weight-bold">RedeemMe</span>
+          <img :src="logo" alt="RedeemMe" class="logo" />
         </v-btn>
       </template>
 
@@ -29,7 +30,7 @@ function handleLogout() {
 
       <template v-slot:append>
         <v-btn v-if="isMod" to="/mod" icon="mdi-cog" size="small" color="pink-lighten-1"></v-btn>
-        <v-btn v-if="!isMod" to="/mod/login"  icon="mdi-login" size="small"></v-btn>
+        <v-btn v-if="!isMod" to="/mod/login" icon="mdi-login" size="small"></v-btn>
         <v-btn v-if="isMod" icon="mdi-logout" size="small" @click="handleLogout"></v-btn>
       </template>
     </v-app-bar>
@@ -44,6 +45,13 @@ function handleLogout() {
 
 <style scoped>
 .home-btn {
-  letter-spacing: 0.05em;
+  min-width: unset;
+  padding: 0 8px;
+}
+
+.logo {
+  height: 24px;
+  width: auto;
+  display: block;
 }
 </style>
