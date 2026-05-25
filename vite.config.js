@@ -7,13 +7,4 @@ export default defineConfig({
     vue(),
     vuetify({ autoImport: true }),
   ],
-  server: {
-    proxy: {
-      '/kingshot': {
-        target: 'https://kingshot.net',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/kingshot/, '/api'),
-      }
-    }
-  }
 })

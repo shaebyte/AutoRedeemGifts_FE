@@ -15,15 +15,13 @@ const createOk = ref(false)
 const createLoading = ref(false)
 const createAlert = ref(false)
 
-const BASE = import.meta.env.VITE_CODE_API
 const codes = ref([])
 const codesLoading = ref(true)
 
 onMounted(async () => {
   try {
-    const res = await fetch(`${BASE}/gift-codes`)
-    const json = await res.json()
-    codes.value = json.data.giftCodes
+    const { data } = await api.get('/gift-codes/live')
+    codes.value = data.data.giftCodes
   } catch (e) {
     console.error('Failed to load gift codes', e)
   } finally {
@@ -39,6 +37,7 @@ async function search() {
   newName.value = ''
   createMsg.value = ''
   createOk.value = false
+  createAlert.value = false
 
   if (!searchId.value.trim()) return
 
@@ -109,6 +108,8 @@ async function create() {
                   label="Player ID"
                   v-model="searchId"
                   @keyup.enter="search"
+                  @input="searchId = searchId.replace(/\D/g, '')"
+                  inputmode="numeric"
                   variant="underlined"
                   hide-details
                 />
