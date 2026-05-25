@@ -7,4 +7,14 @@ export default defineConfig({
     vue(),
     vuetify({ autoImport: true }),
   ],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vue-vendor': ['vue', 'vue-router'],
+          'vuetify': ['vuetify'],
+        },
+      },
+    },
+  },
 })
