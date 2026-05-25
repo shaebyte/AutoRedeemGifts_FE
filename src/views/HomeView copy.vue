@@ -8,14 +8,12 @@ const searchMsg = ref('')
 const searchIcon = ref('mdi-alert-circle')
 const notFound = ref(false)
 
-// Validatie state (nieuw)
-const validating = ref(false)
-const validated = ref(null)      // { fid, nickname, kid, stove_lv, avatar_image }
-const validateMsg = ref('')
-
-const creating = ref(false)
-const createAlert = ref(false)
+const showCreateForm = ref(false)
+const newName = ref('')
 const createMsg = ref('')
+const createOk = ref(false)
+const createLoading = ref(false)
+const createAlert = ref(false)
 
 const codes = ref([])
 const codesLoading = ref(true)
@@ -31,18 +29,16 @@ onMounted(async () => {
   }
 })
 
-function reset() {
-  found.value = null
-  notFound.value = false
-  validated.value = null
-  validateMsg.value = ''
-  searchMsg.value = ''
-  createAlert.value = false
-  createMsg.value = ''
-}
-
 async function search() {
-  reset()
+  found.value = null
+  searchMsg.value = ''
+  notFound.value = false
+  showCreateForm.value = false
+  newName.value = ''
+  createMsg.value = ''
+  createOk.value = false
+  createAlert.value = false
+
   if (!searchId.value.trim()) return
 
   try {
@@ -60,45 +56,38 @@ async function search() {
   }
 }
 
-// Nieuw: valideer via externe game API
-async function validatePlayer() {
-  validated.value = null
-  validateMsg.value = ''
-  validating.value = true
-
-  try {
-    const { data } = await api.get(`/accounts/validate/${searchId.value.trim()}`)
-    validated.value = data
-  } catch (e) {
-    validateMsg.value = e.response?.data?.detail ?? 'Player not found in game.'
-  } finally {
-    validating.value = false
-  }
-}
-
-// Aanmaken met de data die al gevalideerd is
 async function create() {
-  if (!validated.value) return
-  creating.value = true
   createMsg.value = ''
+  createOk.value = false
+  createAlert.value = false
 
+  if (!newName.value.trim()) {
+    createMsg.value = 'Enter a name.'
+    return
+  }
+
+  createLoading.value = true
   try {
-    await api.post('/accounts', {
+    const { data } = await api.post('/accounts', {
       player_id: searchId.value.trim(),
-      name: validated.value.nickname,
+      name: newName.value.trim(),
     })
+    createOk.value = true
     createMsg.value = 'Account created!'
     createAlert.value = true
+    searchMsg.value = ''
     found.value = {
       player_id: searchId.value.trim(),
-      name: validated.value.nickname,
+      name: newName.value.trim(),
+      ...data,  // eventuele extra velden uit de response
     }
     notFound.value = false
-    validated.value = null
+    showCreateForm.value = false
+    newName.value = ''
   } catch (e) {
     createMsg.value = e.response?.data?.detail ?? 'Something went wrong.'
   } finally {
-    creating.value = false
+    createLoading.value = false
   }
 }
 </script>
@@ -112,7 +101,7 @@ async function create() {
         <v-card title="Subscribe" class="pt-3 pl-3">
           <v-card-text>
 
-            <!-- Zoekbalk -->
+            <!-- Search input -->
             <v-row no-gutters align="baseline" class="mt-3">
               <v-col>
                 <v-text-field
@@ -136,7 +125,7 @@ async function create() {
               </v-col>
             </v-row>
 
-            <!-- Gevonden in eigen DB -->
+            <!-- Found -->
             <v-row v-if="found" no-gutters align="center" class="mt-6">
               <v-col cols="auto" class="d-flex align-center mr-4">
                 <v-icon icon="mdi-check-circle" size="large" color="success" class="mr-2" />
@@ -148,7 +137,7 @@ async function create() {
               </v-col>
             </v-row>
 
-            <!-- Succes alert na aanmaken -->
+            <!-- Nieuw: alert na aanmaken account -->
             <v-row v-if="createAlert" no-gutters class="mt-3">
               <v-col>
                 <v-alert
@@ -162,7 +151,7 @@ async function create() {
               </v-col>
             </v-row>
 
-            <!-- Niet gevonden / blacklisted -->
+            <!-- Not found / blacklisted message -->
             <v-row v-else-if="searchMsg && !found" no-gutters align="center" class="mt-6">
               <v-col cols="auto" class="d-flex align-center">
                 <v-icon :icon="searchIcon" size="large" color="red" class="mr-2" />
@@ -170,63 +159,57 @@ async function create() {
               </v-col>
             </v-row>
 
-            <!-- Stap 1: Subscribe knop → valideert bij game API -->
-            <v-row v-if="notFound && !validated" no-gutters class="mt-4">
+            <!-- Register prompt -->
+            <v-row v-if="notFound && !showCreateForm" no-gutters class="mt-4">
               <v-col>
                 <v-btn
                   variant="tonal"
                   color="primary"
-                  prepend-icon="mdi-account-search"
-                  :loading="validating"
-                  @click="validatePlayer"
+                  prepend-icon="mdi-account-plus"
+                  @click="showCreateForm = true"
                 >
                   Subscribe
                 </v-btn>
-                <p v-if="validateMsg" class="msg-err mt-2">{{ validateMsg }}</p>
               </v-col>
             </v-row>
 
-            <!-- Stap 2: Validatie geslaagd → toon game-info + bevestig -->
-            <template v-if="validated">
-              <v-row no-gutters align="center" class="mt-6">
-                <v-col cols="auto" class="mr-4">
-                  <v-avatar size="48">
-                    <v-img :src="validated.avatar_image" />
-                  </v-avatar>
-                </v-col>
+            <!-- Register form (progressive disclosure) -->
+            <template v-if="showCreateForm">
+              <v-row no-gutters align="baseline" class="mt-5">
                 <v-col>
-                  <div class="text-subtitle-1 font-weight-medium">{{ validated.nickname }}</div>
-                  <div class="text-caption text-medium-emphasis">
-                    Kingdom {{ validated.kid }} · Furnace Lv {{ validated.stove_lv }}
-                  </div>
+                  <v-text-field
+                    label="Name"
+                    v-model="newName"
+                    @keyup.enter="create"
+                    variant="underlined"
+                    hide-details
+                    autofocus
+                  />
                 </v-col>
-              </v-row>
-
-              <v-row no-gutters class="mt-4" style="gap: 8px">
-                <v-col cols="auto">
+                <v-col cols="auto" class="d-flex align-center ml-2 gap-1">
                   <v-btn
+                    icon="mdi-check"
                     color="success"
-                    variant="tonal"
-                    prepend-icon="mdi-check"
-                    :loading="creating"
+                    variant="plain"
+                    size="x-small"
+                    :loading="createLoading"
                     @click="create"
-                  >
-                    Confirm
-                  </v-btn>
-                </v-col>
-                <v-col cols="auto">
+                  />
                   <v-btn
+                    icon="mdi-close"
                     color="error"
-                    variant="text"
-                    prepend-icon="mdi-close"
-                    @click="validated = null"
-                  >
-                    Cancel
-                  </v-btn>
+                    variant="plain"
+                    size="x-small"
+                    @click="showCreateForm = false"
+                  />
                 </v-col>
               </v-row>
 
-              <p v-if="createMsg && !createAlert" class="msg-err mt-2">{{ createMsg }}</p>
+              <v-row v-if="createMsg" no-gutters class="mt-2">
+                <v-col>
+                  <span :class="createOk ? 'msg-ok' : 'msg-err'">{{ createMsg }}</span>
+                </v-col>
+              </v-row>
             </template>
 
           </v-card-text>
