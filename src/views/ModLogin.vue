@@ -67,7 +67,6 @@ async function submit() {
   line-height: 1;
 }
 .btn {
-  font-family: 'DM Sans', sans-serif;
   font-size: 15px;
   font-weight: 500;
   letter-spacing: 0.2px;

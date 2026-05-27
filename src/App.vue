@@ -53,6 +53,12 @@ function handleLogout() {
   </v-app>
 </template>
 
+<style>
+* {
+  font-family: 'DM Sans', sans-serif;
+}
+</style>
+
 <style scoped>
 /* 1. Basis layout (Mobiel eerst): neem de volledige breedte met een comfortabele padding */
 .layout-container,

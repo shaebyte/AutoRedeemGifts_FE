@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import giftImg from '../assets/gift.png'
+import mrbloopImg from '../assets/mrbloopbot.png'
 import api from '../api/client'
 
 const searchId = ref('')
@@ -194,9 +195,21 @@ async function copyCode(code) {
 
             <!-- Blacklisted message -->
             <v-row v-if="searchMsg" no-gutters align="center" class="mt-10">
-              <v-col cols="auto" class="d-flex align-center">
-                <v-icon icon="mdi-emoticon-kiss-outline" size="large" color="red" class="mr-2" />
-                <span class="msg-err">{{ searchMsg }}</span>
+              <!-- Linker kolom: Image -->
+              <v-col cols="3">
+                <v-img
+                  :src="mrbloopImg"
+                  alt="Mr Bloopbot"
+                  max-width="80"
+                  contain
+                />
+              </v-col>
+
+              <!-- Rechter kolom: Tekst -->
+              <v-col cols="9" class="d-flex flex-column">
+                <span class="subtext text-left d-block" style="color: #18a4ff;">
+                  Well well, looks like you've been granted exclusive access to our elite club: Exclusion.
+                </span>
               </v-col>
             </v-row>
 
@@ -288,7 +301,7 @@ async function copyCode(code) {
                 </v-row>
                 <v-row no-gutters align="center" class="mt-7">
                   <v-col cols="12" class="text-center">
-                    <span class="text-caption text-medium-emphasis">Redeem gift codes at</span><br/>
+                    <span class="subtext text-caption text-medium-emphasis">Redeem gift codes at</span><br/>
                     <v-btn
                       href="https://ks-giftcode.centurygame.com/"
                       target="_blank"
@@ -368,8 +381,8 @@ async function copyCode(code) {
   line-height: 1.6;
 }
 
+
 .btn {
-  font-family: 'DM Sans', sans-serif;
   font-size: 15px;
   font-weight: 500;
   letter-spacing: 0.2px;
