@@ -21,42 +21,57 @@ async function submit() {
 
 <template>
   <v-container>
-    <v-row>
+    <v-row justify="center" class="pt-4">
       <v-col>
-        <v-card title="Login" class="pt-3 pl-3">
-          <v-card-text>
-
-            <v-row no-gutters align="baseline" class="mt-3">
-              <v-col>
-                <v-text-field
-                  label="Password"
-                  v-model="password"
-                  type="password"
-                  @keyup.enter="submit"
-                  variant="underlined"
-                  hide-details
-                />
-              </v-col>
-              <v-col cols="auto">
-                <v-btn
-                  icon="mdi-login"
-                  variant="plain"
-                  size="small"
-                  class="ml-2"
-                  @click="submit"
-                />
-              </v-col>
-            </v-row>
-
-            <v-row v-if="error" no-gutters class="mt-2">
-              <v-col>
-                <span class="msg-err">{{ error }}</span>
-              </v-col>
-            </v-row>
-
+        <v-card rounded="xl" elevation="3">
+          <v-card-text class="pl-10 pr-10">
+            <h2 class="headline_two mb-4 text-center">Moderator</h2>
+            <v-container class="py-1 mb-4">
+              <v-text-field
+                label="Password"
+                v-model="password"
+                type="password"
+                density="comfortable"
+                class="mb-4"
+                @keyup.enter="submit"
+                variant="outlined"
+                hide-details
+              />
+              <v-btn
+                block
+                rounded="lg"
+                size="large"
+                variant="tonal"
+                class="btn"
+                color="#18a4ff"
+                @click="submit"
+              >Login</v-btn>
+              <v-row v-if="error" no-gutters class="mt-2">
+                <v-col>
+                  <span class="msg-err">{{ error }}</span>
+                </v-col>
+              </v-row>
+            </v-container>
           </v-card-text>
         </v-card>
       </v-col>
     </v-row>
   </v-container>
 </template>
+
+<style scoped>
+.headline_two {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 32px;
+  letter-spacing: 2px;
+  line-height: 1;
+}
+.btn {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  text-transform: none;
+  transition: transform 0.15s, box-shadow 0.2s;
+}
+</style>

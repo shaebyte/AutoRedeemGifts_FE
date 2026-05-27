@@ -1,16 +1,16 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
+import giftImg from '../assets/gift.png'
 import api from '../api/client'
 
 const searchId = ref('')
 const found = ref(null)
 const searchMsg = ref('')
-const searchIcon = ref('mdi-alert-circle')
-const notFound = ref(false)
+const showError = ref(false)
+const isFound = computed(() => !!found.value && found.value !== false)
 
-// Validatie state (nieuw)
 const validating = ref(false)
-const validated = ref(null)      // { fid, nickname, kid, stove_lv, avatar_image }
+const validated = ref(null)
 const validateMsg = ref('')
 
 const creating = ref(false)
@@ -33,34 +33,39 @@ onMounted(async () => {
 
 function reset() {
   found.value = null
-  notFound.value = false
   validated.value = null
   validateMsg.value = ''
   searchMsg.value = ''
   createAlert.value = false
   createMsg.value = ''
+  showError.value = false
 }
 
 async function search() {
   reset()
-  if (!searchId.value.trim()) return
+  if (!searchId.value.trim()) {
+    showError.value = true
+    return
+  }
+  found.value = false
 
   try {
     const { data } = await api.get(`/accounts/${searchId.value.trim()}`)
     if (data.blacklisted) {
-      searchMsg.value = 'Hooray you are E X C L U D E D.'
-      searchIcon.value = 'mdi-emoticon-kiss-outline'
+      searchMsg.value = 'mrbloop does not serve this player.'
     } else {
       found.value = data
     }
   } catch {
-    searchMsg.value = 'Account not found.'
-    searchIcon.value = 'mdi-alert-circle'
-    notFound.value = true
+    await validatePlayer()
   }
 }
 
-// Nieuw: valideer via externe game API
+const stoveLvLabel = (lv) => {
+  const map = { 35: 'TG1', 40: 'TG2', 45: 'TG3', 50: 'TG4', 55: 'TG5', 60: 'TG6', 65: 'TG7', 70: 'TG8' }
+  return map[lv] ?? `Level ${lv}`
+}
+
 async function validatePlayer() {
   validated.value = null
   validateMsg.value = ''
@@ -76,7 +81,6 @@ async function validatePlayer() {
   }
 }
 
-// Aanmaken met de data die al gevalideerd is
 async function create() {
   if (!validated.value) return
   creating.value = true
@@ -93,7 +97,6 @@ async function create() {
       player_id: searchId.value.trim(),
       name: validated.value.nickname,
     }
-    notFound.value = false
     validated.value = null
   } catch (e) {
     createMsg.value = e.response?.data?.detail ?? 'Something went wrong.'
@@ -101,54 +104,81 @@ async function create() {
     creating.value = false
   }
 }
+
+async function copyCode(code) {
+  navigator.clipboard.writeText(code)
+}
 </script>
 
 <template>
   <v-container>
+    <!-- Subscribe -->
+    <v-row justify="center" no-gutters>
+      <v-col cols="12">
+        <v-card class="subscribe-card" rounded="xl" elevation="3">
+          <v-card-text class="text-center pa-10">
 
-    <!-- Search card -->
-    <v-row>
-      <v-col>
-        <v-card title="Subscribe" class="pt-3 pl-3">
-          <v-card-text>
+            <!-- Gift -->
+            <div class="gift-wrap mb-0">
+              <div class="gift-glow"></div>
+              <img
+                :src="giftImg"
+                alt="Gift"
+                class="gift"
+              />
+            </div>
 
-            <!-- Zoekbalk -->
-            <v-row no-gutters align="baseline" class="mt-3">
-              <v-col>
-                <v-text-field
-                  label="Player ID"
-                  v-model="searchId"
-                  @keyup.enter="search"
-                  @input="searchId = searchId.replace(/\D/g, '')"
-                  inputmode="numeric"
-                  variant="underlined"
-                  hide-details
-                />
-              </v-col>
-              <v-col cols="auto">
-                <v-btn
-                  icon="mdi-magnify"
-                  variant="plain"
-                  size="x-small"
-                  class="ml-2"
-                  @click="search"
-                />
-              </v-col>
-            </v-row>
+            <h1 class="headline mb-6">HEY YOU!</h1>
 
-            <!-- Gevonden in eigen DB -->
-            <v-row v-if="found" no-gutters align="center" class="mt-6">
+            <p class="subtext mb-8">
+              Let <span class="highlight-name">mrbloop</span> redeem the<br />
+              Kingshot gift codes for you.
+            </p>
+
+            <!-- Player ID input -->
+            <v-text-field
+              v-model="searchId"
+              label="Enter your player ID"
+              variant="outlined"
+              rounded="lg"
+              density="comfortable"
+              inputmode="numeric"
+              :error-messages="showError ? 'Please enter a valid player ID.' : ''"
+              class="mb-2"
+              @keyup.enter="search"
+              @input="searchId = searchId.replace(/\D/g, ''); reset()"
+              hide-details="auto"
+            />
+
+            <!-- Search button -->
+            <v-btn
+              v-show="!validated && !searchMsg"
+              block
+              rounded="lg"
+              size="large"
+              variant="tonal"
+              class="btn mt-4"
+              :color="isFound ? 'success' : '#18a4ff'"
+              :loading="validating"
+              @click="search"
+            >
+              <v-icon v-if="isFound" icon="mdi-check" start></v-icon>
+              {{ isFound ? "You're already on the list!" : "Let's do this!" }}
+            </v-btn>
+
+            <!-- Found in DB -->
+            <v-row v-if="isFound" no-gutters align="center" justify="center" class="mt-10">
               <v-col cols="auto" class="d-flex align-center mr-4">
-                <v-icon icon="mdi-check-circle" size="large" color="success" class="mr-2" />
+                <v-icon icon="mdi-identifier" size="x-large" color="#fc3dab" class="mr-2" />
                 {{ found.player_id }}
               </v-col>
               <v-col cols="auto" class="d-flex align-center">
-                <v-icon icon="mdi-account-circle" size="large" color="pink-lighten-1" class="mr-2" />
+                <v-icon icon="mdi-account-outline" size="large" color="#fc3dab" class="mr-2" />
                 {{ found.name }}
               </v-col>
             </v-row>
 
-            <!-- Succes alert na aanmaken -->
+            <!-- Success alert after create -->
             <v-row v-if="createAlert" no-gutters class="mt-3">
               <v-col>
                 <v-alert
@@ -162,63 +192,61 @@ async function create() {
               </v-col>
             </v-row>
 
-            <!-- Niet gevonden / blacklisted -->
-            <v-row v-else-if="searchMsg && !found" no-gutters align="center" class="mt-6">
+            <!-- Blacklisted message -->
+            <v-row v-if="searchMsg" no-gutters align="center" class="mt-10">
               <v-col cols="auto" class="d-flex align-center">
-                <v-icon :icon="searchIcon" size="large" color="red" class="mr-2" />
+                <v-icon icon="mdi-emoticon-kiss-outline" size="large" color="red" class="mr-2" />
                 <span class="msg-err">{{ searchMsg }}</span>
               </v-col>
             </v-row>
 
-            <!-- Stap 1: Subscribe knop → valideert bij game API -->
-            <v-row v-if="notFound && !validated" no-gutters class="mt-4">
-              <v-col>
-                <v-btn
-                  variant="tonal"
-                  color="primary"
-                  prepend-icon="mdi-account-search"
-                  :loading="validating"
-                  @click="validatePlayer"
-                >
-                  Subscribe
-                </v-btn>
-                <p v-if="validateMsg" class="msg-err mt-2">{{ validateMsg }}</p>
+            <!-- Validate error -->
+            <v-row v-if="validateMsg" no-gutters align="center" class="mt-6">
+              <v-col cols="auto" class="d-flex align-center">
+                <v-icon icon="mdi-alert-circle" size="large" color="red" class="mr-2" />
+                <span class="msg-err">{{ validateMsg }}</span>
               </v-col>
             </v-row>
 
-            <!-- Stap 2: Validatie geslaagd → toon game-info + bevestig -->
+            <!-- Validated: show game info + confirm -->
             <template v-if="validated">
-              <v-row no-gutters align="center" class="mt-6">
-                <v-col cols="auto" class="mr-4">
+              <v-row no-gutters align="center" class="mt-10 " >
+                <v-col cols="5" class="d-flex justify-end align-center pe-4">
                   <v-avatar size="48">
                     <v-img :src="validated.avatar_image" />
                   </v-avatar>
                 </v-col>
-                <v-col>
-                  <div class="text-subtitle-1 font-weight-medium">{{ validated.nickname }}</div>
+                <v-col class="text-start" >
+                  <div class="text-h6 font-weight-medium">{{ validated.nickname }}</div>
                   <div class="text-caption text-medium-emphasis">
-                    Kingdom {{ validated.kid }} · Furnace Lv {{ validated.stove_lv }}
+                    Kingdom {{ validated.kid }} · {{ stoveLvLabel(validated.stove_lv) }}
                   </div>
                 </v-col>
               </v-row>
 
-              <v-row no-gutters class="mt-4" style="gap: 8px">
-                <v-col cols="auto">
+              <v-row no-gutters class="mt-6">
+                <v-col cols="12">
                   <v-btn
-                    color="success"
+                    block
+                    rounded="lg"
+                    size="large"
                     variant="tonal"
-                    prepend-icon="mdi-check"
+                    color="success"
+                    class="btn"
                     :loading="creating"
                     @click="create"
                   >
                     Confirm
                   </v-btn>
                 </v-col>
-                <v-col cols="auto">
+                <v-col cols="12" class="mt-2">
                   <v-btn
-                    color="error"
-                    variant="text"
-                    prepend-icon="mdi-close"
+                    block
+                    rounded="lg"
+                    size="large"
+                    variant="tonal"
+                    color="#999999"
+                    class="btn"
                     @click="validated = null"
                   >
                     Cancel
@@ -235,30 +263,127 @@ async function create() {
     </v-row>
 
     <!-- Gift Codes -->
-    <v-row class="mt-10">
+    <v-row justify="center" class="pt-4">
       <v-col>
-        <v-card title="Gift Codes" class="pt-3 pl-3" style="overflow: hidden">
-          <v-card-text class="px-0 pb-2">
-            <p v-if="codesLoading">Loading...</p>
-            <v-table v-else-if="codes.length" class="rounded-0">
-              <thead>
-                <tr>
-                  <th>Code</th>
-                  <th>Expiration date</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="c in codes" :key="c.id">
-                  <td>{{ c.code }}</td>
-                  <td>{{ c.expiresAt ? c.expiresAt.slice(0, 10) : '' }}</td>
-                </tr>
-              </tbody>
-            </v-table>
-            <p v-else>No gift codes found.</p>
+        <v-card rounded="xl" elevation="3">
+          <v-card-text class="pa-1">
+            <h2 class="headline_two mb-4 text-center">Gift Codes</h2>
+            <p v-if="codesLoading" class="text-center">Loading...</p>
+            <template v-else-if="codes.length">
+              <v-container class="py-1 mb-6">
+                <v-row v-for="c in codes" :key="c.id" align="center" no-gutters class="mb-1">
+                  <v-col cols="7" class="text-right">
+                    {{ c.code }}
+                  </v-col>
+                  <v-col cols="5" class="pl-2">
+                    <v-btn
+                      icon
+                      size="small"
+                      variant="text"
+                      @click="copyCode(c.code)"
+                    >
+                      <v-icon icon="mdi-content-copy" size="x-small" color="grey-lighten-1"/>
+                    </v-btn>
+                  </v-col>
+                </v-row>
+                <v-row no-gutters align="center" class="mt-7">
+                  <v-col cols="12" class="text-center">
+                    <span class="text-caption text-medium-emphasis">Redeem gift codes at</span><br/>
+                    <v-btn
+                      href="https://ks-giftcode.centurygame.com/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      variant="text"
+                      size="regular"
+                      color="#18a4ff"
+                    >
+                      Kingshot
+                    </v-btn>
+                  </v-col>
+                </v-row>
+              </v-container>
+            </template>
+            <p v-else class="text-center">No gift codes found.</p>
           </v-card-text>
         </v-card>
       </v-col>
     </v-row>
-
   </v-container>
 </template>
+
+<style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500&display=swap');
+
+.subscribe-card {
+  animation: fadeUp 0.5s ease both;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.gift-wrap {
+  position: relative;
+  display: inline-block;
+}
+
+.gift-glow {
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(251, 146, 60, 0.18) 0%, transparent 70%);
+}
+
+.gift {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 16px rgba(251, 146, 60, 0.3));
+  animation: floating 3s ease-in-out infinite;
+}
+
+@keyframes floating {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-7px); }
+}
+
+.headline {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 64px;
+  letter-spacing: 2px;
+  line-height: 1;
+}
+
+.headline_two {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 32px;
+  letter-spacing: 2px;
+  line-height: 1;
+}
+
+.subtext {
+  font-size: 15px;
+  color: #666;
+  line-height: 1.6;
+}
+
+.btn {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  text-transform: none;
+  transition: transform 0.15s, box-shadow 0.2s;
+}
+
+.btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.14) !important;
+}
+
+.highlight-name {
+  color: #fc3dab; /* Vervang dit door jouw gewenste kleur (bijv. 'red', 'blue', of een hex-code) */
+  font-weight: bold; /* Optioneel: maakt de naam ook meteen dikgedrukt */
+}
+</style>
