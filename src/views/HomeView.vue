@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import giftImg from '../assets/gift.png'
-import mrbloopImg from '../assets/mrbloopbot.png'
+import mrbloopImg from '../assets/mrbloop-webp.webp'
 import api from '../api/client'
 
 const searchId = ref('')
@@ -22,6 +22,7 @@ const codes = ref([])
 const codesLoading = ref(true)
 
 onMounted(async () => {
+  new Image().src = mrbloopImg
   try {
     const { data } = await api.get('/gift-codes/live')
     codes.value = data.data.giftCodes
